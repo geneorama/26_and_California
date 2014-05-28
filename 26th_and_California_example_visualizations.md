@@ -10,40 +10,18 @@ Location: 1871
 
 These are some example visualizations and data handling methods for discussion at the meetup.
 
-## RUN INITIALIZATION SCRIPT
+
+## INITIALIZATION
+
 
 ```r
-source("00 Initialize.R")
+opts_chunk$set(tidy = FALSE)
 ```
 
-```
-## 
-## Detaching non-standard libraries:
-## Detaching: knitr 
-## Detaching: geneorama 
-## 
-## Installing missing libraries (if needed)
-## 
-## Loading required libraries:
-## Attaching: geneorama 
-## Attaching: data.table 
-## Attaching: ggplot2 
-## Attaching: zoo
-```
 
-```
-## Attaching package: 'zoo'
-```
 
-```
-## The following object(s) are masked from 'package:base':
-## 
-## as.Date, as.Date.numeric
-```
-
-```
-## ExtractIsoTime.R :
-## wtf.R :
+```r
+source('00 Initialize.R')
 ```
 
 
@@ -53,9 +31,10 @@ source("00 Initialize.R")
 
 
 ```r
-rawdat = read.table(file = "Database 2013-01-21 (8zQ4cW7T).csv", sep = ",", 
-    quote = "\"", flush = FALSE, header = TRUE, nrows = -1, fill = FALSE, stringsAsFactors = FALSE, 
-    na.strings = c("None", ""))
+rawdat = read.table(
+	file = 'Database 2013-01-21 (8zQ4cW7T).csv', sep=',', quote='"', 
+	flush=FALSE, header=TRUE, nrows=-1, fill=FALSE, stringsAsFactors=FALSE,
+	na.strings=c('None', ''))
 str(rawdat)
 ```
 
@@ -97,12 +76,12 @@ str(dat)
 
 ```r
 
-## Convert booking and discharge dates to date time objects EXAMPLE
-## FORMAT: 2012-12-30T20:57:19.616186
+## Convert booking and discharge dates to date time objects
+## EXAMPLE FORMAT: 2012-12-30T20:57:19.616186
 dat$booking_date = ExtractIsoTime(dat$booking_date)
 dat$discharge_date_earliest = ExtractIsoTime(dat$discharge_date_earliest)
 
-table(dat$race, useNA = "ifany")
+table(dat$race, useNA='ifany')
 ```
 
 ```
@@ -113,12 +92,12 @@ table(dat$race, useNA = "ifany")
 
 ```r
 
-## I'm going to guess that W and WH are both 'White'
-dat$race = sub("^W$", "WH", dat$race)
-## I'm going to guess that B and BK are both 'White'
-dat$race = sub("^B$", "BK", dat$race)
+## I'm going to guess that W and WH are both "White"
+dat$race = sub('^W$', 'WH', dat$race)
+## I'm going to guess that B and BK are both "White"
+dat$race = sub('^B$', 'BK', dat$race)
 
-table(dat$race, useNA = "ifany")
+table(dat$race, useNA='ifany')
 ```
 
 ```
@@ -154,7 +133,7 @@ NAsummary(dat)
 ```r
 
 ## More simple summaries
-table(dat$gender, useNA = "ifany")
+table(dat$gender, useNA='ifany')
 ```
 
 ```
@@ -166,11 +145,11 @@ table(dat$gender, useNA = "ifany")
 ```r
 
 ## Chargs and Charges_citation are too big to print:
-## table(dat$charges_citation, useNA='ifany') table(dat$charges,
-## useNA='ifany')
-
+# table(dat$charges_citation, useNA='ifany')
+# table(dat$charges, useNA='ifany')
+ 
 ## Just the top 100 charges_citation
-sort(table(dat$charges_citation, useNA = "ifany"), T)[1:10]
+sort(table(dat$charges_citation, useNA='ifany'), T)[1:10]
 ```
 
 ```
@@ -188,7 +167,7 @@ sort(table(dat$charges_citation, useNA = "ifany"), T)[1:10]
 ```
 
 ```r
-sort(table(dat$charges, useNA = "ifany"), T)[1:10]
+sort(table(dat$charges, useNA='ifany'), T)[1:10]
 ```
 
 ```
@@ -239,7 +218,8 @@ table(is.na(dat$charges_citation))
 
 ```r
 
-## Write Temp File (what did you think it would do?)  wtf(dat)
+## Write Temp File (what did you think it would do?)
+# wtf(dat)
 ```
 
 
@@ -249,7 +229,7 @@ table(is.na(dat$charges_citation))
 
 ```r
 
-range(dat$booking_date, na.rm = TRUE)
+range(dat$booking_date, na.rm=TRUE)
 ```
 
 ```
@@ -259,16 +239,16 @@ range(dat$booking_date, na.rm = TRUE)
 ```r
 
 ## Checking to see if the dates imported correctly
-plot(dat$discharge_date_earliest, 1:nrow(dat))
+plot(dat$discharge_date_earliest , 1:nrow(dat))
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-41.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-51.png) 
 
 ```r
-plot(dat$booking_date, 1:nrow(dat))  ## Usually organzied by booking date?
+plot(dat$booking_date , 1:nrow(dat))  ## Usually organzied by booking date?
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-42.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-52.png) 
 
 ```r
 
@@ -276,7 +256,7 @@ plot(dat$booking_date, 1:nrow(dat))  ## Usually organzied by booking date?
 plot(dat$booking_date, dat$discharge_date_earliest)
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-43.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-53.png) 
 
 ```r
 
@@ -284,53 +264,54 @@ plot(dat$booking_date, dat$discharge_date_earliest)
 hist(dat$bail_amount, 100)
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-44.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-54.png) 
 
 ```r
-hist(pmin(dat$bail_amount, 1e+06), 100)
+hist(pmin(dat$bail_amount, 1000000), 100)
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-45.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-55.png) 
 
 ```r
 hist(dat$age_at_booking, 100)
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-46.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-56.png) 
 
 ```r
 
 
-plot(dat$age_at_booking, dat$bail_amount, main = "age by bail amount")
+plot(dat$age_at_booking, dat$bail_amount, main='age by bail amount')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-47.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-57.png) 
 
 ```r
-plot(log(bail_amount) ~ age_at_booking, dat, main = "age by log(bail amount)")
+plot(log(bail_amount)~age_at_booking, dat, main='age by log(bail amount)')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-48.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-58.png) 
 
 ```r
 
 
-boxplot(bail_amount ~ age_at_booking, dat, main = "age by bail amount (much better)")
+boxplot(bail_amount~age_at_booking, dat, main='age by bail amount (much better)')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-49.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-59.png) 
 
 ```r
-boxplot(pmin(bail_amount, 5e+05) ~ age_at_booking, dat, main = "age by bail amount\n(changing the limits)")
+boxplot(pmin(bail_amount, 5e5)~age_at_booking, dat,
+		main='age by bail amount\n(changing the limits)')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-410.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-510.png) 
 
 ```r
-boxplot(log(bail_amount) ~ age_at_booking, dat, main = "age by log(bail amount)")
+boxplot(log(bail_amount)~age_at_booking, dat, main='age by log(bail amount)')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-411.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-511.png) 
 
 ```r
 
@@ -339,108 +320,108 @@ library(mgcv)
 ```
 
 ```
-## This is mgcv 1.7-22. For overview type 'help("mgcv-package")'.
+## Loading required package: nlme
+## This is mgcv 1.7-29. For overview type 'help("mgcv-package")'.
 ```
 
 ```r
-bailbyage.gam = gam(bail_amount ~ s(age_at_booking), data = dat)
-plot(bailbyage.gam, main = "fitted age by bail amount")
+bailbyage.gam = gam(bail_amount ~ s(age_at_booking), data=dat)
+plot(bailbyage.gam, main='fitted age by bail amount')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-412.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-512.png) 
 
 ```r
 
-plot(dat$age_at_booking, dat$bail_amount, main = "fitted age by bail amount\n(another way)")
-lines(predict(bailbyage.gam), col = "red")
+plot(dat$age_at_booking, dat$bail_amount, 
+	 main='fitted age by bail amount\n(another way)')
+lines(predict(bailbyage.gam), col='red')
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-413.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-513.png) 
 
 
 ## SOME GGPLOTS
 
 
 ```r
-ggplot(dat, aes(x = age_at_booking, fill = factor(race))) + geom_density(alpha = 0.5) + 
-    facet_grid(race ~ .) + xlab("Age at booking") + ylab("Density by race") + 
-    theme(plot.title = element_text(size = 20)) + labs(title = "Age at booking summary\nby race\n")
+ggplot(dat, aes(x=age_at_booking, fill=factor(race))) +
+	geom_density(alpha=.5) + 
+	facet_grid(race ~ .)+
+	xlab("Age at booking") + 
+	ylab("Density by race") +
+	theme(plot.title = element_text(size = 20)) +
+	labs(title='Age at booking summary\nby race\n')
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-51.png) 
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-61.png) 
 
 ```r
 
-ggplot(dat, aes(x = bail_amount, fill = factor(race))) + geom_density(alpha = 0.5) + 
-    facet_grid(race ~ .) + xlab("Age at booking") + ylab("bail amount by race") + 
-    theme(plot.title = element_text(size = 20)) + labs(title = "Bond by race summary\n")
+ggplot(dat, aes(x=bail_amount, fill=factor(race))) +
+	geom_density(alpha=.5) + 
+	facet_grid(race ~ .) +
+	xlab("Age at booking") + 
+	ylab("bail amount by race") +
+	theme(plot.title = element_text(size = 20)) +
+	labs(title='Bond by race summary\n')
 ```
 
 ```
 ## Warning: Removed 48 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 4503 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 3 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 24 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 678 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 415 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 744 rows containing non-finite values (stat_density).
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-52.png) 
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-62.png) 
 
 ```r
 
-ggplot(dat, aes(x = age_at_booking, fill = factor(gender))) + geom_density(alpha = 0.7) + 
-    facet_grid(gender ~ .) + xlab("Age at booking") + ylab("Density by race") + 
-    theme(plot.title = element_text(size = 20)) + labs(title = "Age at booking summary\nby gender\n")
+ggplot(dat, aes(x=age_at_booking, fill=factor(gender))) +
+	geom_density(alpha=.7) + 
+	facet_grid(gender ~ .)+
+	xlab("Age at booking") + 
+	ylab("Density by race") +
+	theme(plot.title = element_text(size = 20)) +
+	labs(title='Age at booking summary\nby gender\n')
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-53.png) 
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-63.png) 
 
 ```r
 
-ggplot(dat, aes(x = age_at_booking, fill = factor(gender))) + geom_density(alpha = 0.7) + 
-    facet_grid(race ~ .) + xlab("Age at booking") + ylab("Density by race") + 
-    theme(plot.title = element_text(size = 20)) + labs(title = "Age at booking summary\nby gender and race\n")
+ggplot(dat, aes(x=age_at_booking, fill=factor(gender))) +
+	geom_density(alpha=.7) + 
+	facet_grid(race ~ .)+
+	xlab("Age at booking") + 
+	ylab("Density by race") +
+	theme(plot.title = element_text(size = 20)) +
+	labs(title='Age at booking summary\nby gender and race\n')
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-54.png) 
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-64.png) 
 
 ```r
 
-ggplot(dat, aes(x = bail_amount, fill = factor(gender))) + geom_density() + 
-    facet_grid(gender ~ .) + xlab("Age at booking") + ylab("bail amount by race") + 
-    theme(plot.title = element_text(size = 20)) + labs(title = "Bond by race summary\n")
+ggplot(dat, aes(x=bail_amount, fill=factor(gender))) +
+	geom_density() + 
+	facet_grid(gender ~ .)+
+	xlab("Age at booking") + 
+	ylab("bail amount by race") +
+	theme(plot.title = element_text(size = 20)) +
+	labs(title='Bond by race summary\n')
 ```
 
 ```
 ## Warning: Removed 581 rows containing non-finite values (stat_density).
-```
-
-```
 ## Warning: Removed 5834 rows containing non-finite values (stat_density).
 ```
 
-![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-55.png) 
-
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-65.png) 
 
 
 

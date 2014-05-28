@@ -10,8 +10,14 @@ Location: 1871
 
 These are some example visualizations and data handling methods for discussion at the meetup.
 
-## RUN INITIALIZATION SCRIPT
-```{r}
+
+## INITIALIZATION
+
+```{r, cache=FALSE}
+opts_chunk$set(tidy=FALSE)
+```
+
+```{r, message=FALSE, results='hide'}
 source('00 Initialize.R')
 ```
 
@@ -154,7 +160,6 @@ ggplot(dat, aes(x=bail_amount, fill=factor(gender))) +
 	labs(title='Bond by race summary\n')
 
 ```
-
 
 
 
