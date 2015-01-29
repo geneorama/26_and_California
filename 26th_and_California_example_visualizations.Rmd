@@ -1,124 +1,315 @@
 
 
-# Example Visualizations for meetup 
+# Examples of data.table and visualizations
 ### by Gene Leynes
 
-http://www.meetup.com/The-Chicago-Data-Visualization-Group/events/97690792/
-## Workshop: Develop a Data App using <br>Raphael, D3, HTML and Backbone <br>(Week 3)
-Date: January 28
-Location: 1871
+This content was originally developed for the meetup "Workshop: Develop a Data App using Raphael, D3, HTML and Backbone (Week 3)", on January 28, 2013, which was held at 1871 which is located in Chicago's Merchandise Mart. http://www.meetup.com/The-Chicago-Data-Visualization-Group/events/97690792/
 
-These are some example visualizations and data handling methods for discussion at the meetup.
+This content continues to be a useful example for demonstrating the some simple data.table examples.
 
+The main point of this report is to show:
+
+ - Markdown examples
+ - data.table aggregation examples
+ - some ggplot and base R plot examples
+
+This report may also rely on my personal library, `geneorama` which can be downloaded from github using the `devtools` library (which is available on CRAN using `install.packages`).  To install geneorama using devtools run: `devtools::install_github("geneorama/geneorama")`  
+
+If you run into problems running this report, please check sessionInfo (shown in the HTML after initialization) to see if you're using compatible package versions.
 
 ## INITIALIZATION
+
+```{r, message=FALSE, results='hide'}
+## Remove all objects; perform garbage collection
+rm(list=ls())
+gc(reset=TRUE)
+## Load libraries
+geneorama::detach_nonstandard_packages()
+geneorama::loadinstall_libraries(c("geneorama", "knitr", "mgcv", "ggplot2",
+								   "reshape2"))
+geneorama::sourceDir("functions/")
+```
+
+### sessionInfo
+
+```{r}
+sessionInfo()
+```
+
+Set knitr options tidy=FALSE globally, to retain indenting.
 
 ```{r, cache=FALSE}
 opts_chunk$set(tidy=FALSE)
 ```
 
-```{r, message=FALSE, results='hide'}
-source('00 Initialize.R')
-```
 
+## IMPORT DATA
 
-
-## READ CSV AND CONVERT SOME VALUES
+Read in the csv file and look at the structure:
 
 ```{r}
 rawdat = read.table(
-	file = 'Database 2013-01-21 (8zQ4cW7T).csv', sep=',', quote='"', 
+	file = 'data/database_2013-01-21_8zQ4cW7T.csv', sep=',', quote='"', 
 	flush=FALSE, header=TRUE, nrows=-1, fill=FALSE, stringsAsFactors=FALSE,
 	na.strings=c('None', ''))
 str(rawdat)
-dat = as.data.table(rawdat)
-str(dat)
-
-## Convert booking and discharge dates to date time objects
-## EXAMPLE FORMAT: 2012-12-30T20:57:19.616186
-dat$booking_date = ExtractIsoTime(dat$booking_date)
-dat$discharge_date_earliest = ExtractIsoTime(dat$discharge_date_earliest)
-
-table(dat$race, useNA='ifany')
-
-## I'm going to guess that W and WH are both "White"
-dat$race = sub('^W$', 'WH', dat$race)
-## I'm going to guess that B and BK are both "White"
-dat$race = sub('^B$', 'BK', dat$race)
-
-table(dat$race, useNA='ifany')
-
+head(rawdat)
 ```
 
-## VIEW SOME TABLES
+By converting to data.table we can alaredy reap some benefits, we no longer have to use the `head`, we can no simply print `dat` and veiew the head and tail.
 
 ```{r}
-## Summary of how many unique values and missing values exist in the data
+dat <- as.data.table(rawdat)
+```
+
+### Fix the dates
+
+We need to convert the dates from character to date objects, here we'll use data.table's `IDate` function, which is nice because it doesn't keep track of (and get confused by) timezone information. It also strips off the time, which is fine here because it's not meaningful.  We could keep the time by using `as.POSIXct` or in a separate column using `ITime`, but that would require a tedious conversion (see `?strptime` for specifics).
+
+Note the `:=` data.table assignmet:
+
+```{r, results='hide'}
+## Convert booking and discharge dates to date time objects
+## EXAMPLE FORMAT: 2012-12-30T20:57:19.616186
+dat[ , booking_date := as.IDate(booking_date)]
+dat[ , discharge_date_earliest := as.IDate(discharge_date_earliest)]
+```
+
+### Check Categories
+
+Let's use the `NAsummary` from geneorama to dig into the structure of dat:
+
+```{r}
 NAsummary(dat)
+```
 
-## More simple summaries
-table(dat$gender, useNA='ifany')
+Let's look at the tables of categorical values (with smallish unique values)
+```{r}
+table(dat$race)
+table(dat$gender)
+table(dat$bail_status)
+```
 
-## Chargs and Charges_citation are too big to print:
-# table(dat$charges_citation, useNA='ifany')
-# table(dat$charges, useNA='ifany')
+What's going on with `bail_status`?  There are a couple of numeric entries (probbaly data entry errors), but there are also no NA values, and table results don't add up to the total number of rows (`r comma(nrow(dat))`).
+
+The problem is that we didn't use the fussy `useNA` argument in table
+
+```{r}
+table(dat$bail_status, useNA = 'ifany')
+```
+
+This is another place where data.table can help.  The `.N` in data.table gives a count, returns it as a useful data.table rather than a table (which can have some tricky properties), and if you use multiple `by` variables data.table will normalize (in the database sense) your data for you automatically.  Oh, and it includes all the current categories, including NA.
+
+```{r}
+dat[ , .N, bail_status]
+```
+
+#### Clean up race variable
+
+Issues with race can get thorny, fortunately we just need to fix some miscoded variables here. 
+
+Recall the `race` tablulation;
+```{r, echo=FALSE}
+dat[ , .N, race]
+```
+
+Let's convert W to WH and B to BK, these are probably just miscoded.
+
+```{r, results='hide'}
+## This data.frame syntax would still work:
+# dat$race = sub('^W$', 'WH', dat$race)
+# dat$race = sub('^B$', 'BK', dat$race)
+
+## However, this is the same thing using data.table
+dat[ , race := sub('^W$', 'WH', race)]
+dat[ , race := sub('^B$', 'BK', race)]
+```
+
+That's more managable:
+```{r, echo=FALSE}
+dat[ , .N, race]
+```
+
+## SIMPLE DATA EXPLORATION
+
+```{r}
+## The summary of charges is too big to print:
+dat[ , .N, charges]
+
+## So, let's look at the top 20 charges
+dat[ , .N, charges][order(-N)][1:20]
+```
+
+This code `dat[ , .N, charges][order(-N)][1:20]`
+Is roughly equivalant to this code, but the data.frame way takes a lot more steps and requires a temporary variable:
+
+```{r}
+df <- as.data.frame(dat)
+mytable <- table(df$charges)
+mytable <- as.data.frame(mytable)
+mytable <- mytable[order(-mytable$Freq), ]
+mytable[1:20, ]
+rm(df, mytable)
+```
+
+#### Decomposing the "chained" data.table command
+
+At first this code `dat[ , .N, charges][order(-N)][1:20]` is harder to read, but it's easy to interpret in steps:
+
+The first part creates the summary.  This command basically "give me the row counts, grouped by charges":
+
+ * `dat[ , .N, charges]`
  
-## Just the top 100 charges_citation
-sort(table(dat$charges_citation, useNA='ifany'), T)[1:10]
-sort(table(dat$charges, useNA='ifany'), T)[1:10]
+The next part says, take those results and order them by `-N`:
 
-## Are the NA values really NA?
-table(is.na(dat$charges))
-table(is.na(dat$charges_citation))
+ * `[order(-N)]`
+ 
+Then, from those results just return the top twenty values:
 
-## Write Temp File (what did you think it would do?)
+ * `[1:20]`
+
+<br>
+
+Let's do the same thing for citations:
+
+```{r}
+## Just the top values of charges_citation
+dat[ , .N, charges_citation][order(-N)][1:20]
+```
+
+Notice that the number of NA values is much lower.
+
+You can also if the citations / charges line up in any particularly useful way, by grouping by two variables:
+
+```{r}
+dat[ , .N, list(charges_citation, charges)][order(-N)][1:20]
+```
+
+Good luck with finding those connections... 
+
+(In a real analysis you may find it helpful to write your current version of dat to a csv file and open it in the default application, which is often Excel)
+
+```{r}
+## Write Temp File using geneorama package's function 
+## Uncomment to run or run manually at the console
 # wtf(dat)
-
 ```
 
 
-## SOME INITIAL PLOTS
+## GRAPHICAL ANALYSIS
+
+Tables and aggregates are great, but let's check out some graphs.
 
 ```{r, fig.width=15}
 
+## Check the range of the two date values
+range(dat$discharge_date_earliest, na.rm=TRUE)
 range(dat$booking_date, na.rm=TRUE)
 
-## Checking to see if the dates imported correctly
-plot(dat$discharge_date_earliest , 1:nrow(dat))
-plot(dat$booking_date , 1:nrow(dat))  ## Usually organzied by booking date?
+## Check number of NA's in each date
+dat[ , .N, is.na(discharge_date_earliest)]
+dat[ , .N, is.na(booking_date)]
 
-## Not very informative, but it would let me know if the data wasn't right
-plot(dat$booking_date, dat$discharge_date_earliest)
+## Does the NA in discharge have anything to do with the age of the record?
+dat[i = TRUE, 
+	j = .N, 
+	keyby = list(missing_discharge_date = is.na(discharge_date_earliest),
+				 booking_year = year(booking_date))]
+
+## Does the NA in discharge have anything to do with the age of the record?
+dat[i = TRUE, 
+	j = .N, 
+	keyby = list(discharge_year = year(discharge_date_earliest))]
+
+## One last check...
+## What is the difference between discharge date and booking date?
+date_diff_table <- dat[
+	i = !is.na(discharge_date_earliest),
+	j = list(day_diff = as.integer(discharge_date_earliest-booking_date),
+			 booking_date)]
+date_diff_table
+
+## intersting, let's plot that...
+plot(day_diff ~ booking_date, date_diff_table)
 
 
+## Some basic histograms
 hist(dat$bail_amount, 100)
 hist(pmin(dat$bail_amount, 1000000), 100)
 hist(dat$age_at_booking, 100)
 
-
-plot(dat$age_at_booking, dat$bail_amount, main='age by bail amount')
-plot(log(bail_amount)~age_at_booking, dat, main='age by log(bail amount)')
+## Some basic plots
+plot(dat$age_at_booking, dat$bail_amount, main='Age by bail amount')
+plot(log(bail_amount) ~ age_at_booking, dat, main='Age by log(bail amount)')
 
 
 boxplot(bail_amount~age_at_booking, dat, main='age by bail amount (much better)')
 boxplot(pmin(bail_amount, 5e5)~age_at_booking, dat,
 		main='age by bail amount\n(changing the limits)')
 boxplot(log(bail_amount)~age_at_booking, dat, main='age by log(bail amount)')
-
-
-library(mgcv)
-bailbyage.gam = gam(bail_amount ~ s(age_at_booking), data=dat)
-plot(bailbyage.gam, main='fitted age by bail amount')
-
-plot(dat$age_at_booking, dat$bail_amount, 
-	 main='fitted age by bail amount\n(another way)')
-lines(predict(bailbyage.gam), col='red')
-
 ```
+
+### Is there a relationship between age and bail amount?
+
+Make a linear model
+
+```{r}
+bailbyage_lm <- lm(log(bail_amount) ~ age_at_booking, data=dat)
+```
+
+Plot the fit
+```{r}
+plot(log(bail_amount) ~ age_at_booking, dat, main='Age by log(bail amount)')
+lines(fitted(bailbyage_lm) ~ 
+	  	dat[!is.na(bail_amount) & !is.na(age_at_booking), age_at_booking], 
+	  col = "blue",
+	  lwd=3)
+```
+
+Check the model diagnostics...
+
+```{r, fig.width=12, fig.height=12}
+par(mfrow=c(2,2))
+plot(bailbyage_lm)
+par(mfrow=c(1,1))
+```
+
+Q: How can the lm result do all that?  
+A: It has _lots_ of parts.
+
+Looking at the structure gives us some idea of what's inside:
+
+```{r}
+str(bailbyage_lm)
+```
+
+
+### Is there a relationship between age and bail amount?
+
+Let's try a model that can perform smoothing.
+
+```{r}
+library(mgcv)
+bailbyage_gam <- gam(log(bail_amount) ~ s(age_at_booking), data=dat)
+plot(bailbyage_gam, main='fitted age by bail amount')
+```
+
+```{r}
+# Plot of fitted on the data:
+plot(log(bail_amount) ~ age_at_booking, 
+	 data = dat,
+	 main='fitted age by bail amount\n(another way)')
+points(fitted(bailbyage_gam) ~ 
+	  	dat[!is.na(bail_amount) & !is.na(age_at_booking), age_at_booking], 
+	  col = "blue",
+	  pch = 16)
+```
+
+
 
 ## SOME GGPLOTS
 
-```{r, fig.width=15}
+```{r, fig.width=15, fig.height=15}
 ggplot(dat, aes(x=age_at_booking, fill=factor(race))) +
 	geom_density(alpha=.5) + 
 	facet_grid(race ~ .)+
@@ -162,6 +353,54 @@ ggplot(dat, aes(x=bail_amount, fill=factor(gender))) +
 ```
 
 
+
+### Fancy ggplot example
+
+
+Fancy ggplot example (with made up data, the jail data is hard to use in this example)
+
+
+```{r, fig.width=15, fig.height=15}
+
+N = 1e3
+
+temp = data.table(
+		loc = sample(letters, N, replace=T),
+		year = rep(1999:2003, length.out=N),
+		mag = rpois(N, lambda=5),
+		x = 1:N,
+		matrix(rnorm(N*10), N, 10))
+temp
+
+temp_melted <- melt(
+    temp[loc %in% letters[1:15]],
+    id.vars=c("loc", "year", "mag"),
+    measure.vars = c("V1", "V2", "V7"))
+temp_melted = as.data.table(temp_melted)
+temp_melted
+
+mycolors = c(
+    'red','red','darkred','darkred','darkred','red','red',
+    'goldenrod','yellow','goldenrod',
+    'green','green','darkgreen','darkgreen','darkgreen','green','green')
+
+ggplot(temp_melted[value>.53 | value < .47],
+       aes(x=as.numeric(year), y=value, size=mag, shape=loc,
+           colour=value)) +
+    geom_point()  +
+    xlab("My Custom X Label (LOG SCALED)") +
+    ylab("My Custom Y Label") +
+    theme(plot.title = element_text(size = 20)) +
+    labs(title='My Amazing Plot \n (note the newline --->)\n') +
+    scale_colour_gradientn(colours = mycolors) +
+    scale_x_log10() +
+    theme(panel.background = element_rect(fill = "gray60", colour = "black")) +
+    theme(panel.grid.major = element_line(colour = "gray40")) +
+    theme(panel.grid.minor = element_line(colour = "gray70", linetype = "dotted"))
+
+rm(temp, temp_melted, N)
+
+```
 
 
 
