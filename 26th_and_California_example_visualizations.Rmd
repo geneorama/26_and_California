@@ -75,6 +75,97 @@ dat[ , booking_date := as.IDate(booking_date)]
 dat[ , discharge_date_earliest := as.IDate(discharge_date_earliest)]
 ```
 
+## Examples of grouping with data.table
+
+```{r}
+## Summary by bail amount the old way:
+## (Don't forget the useNA argument!!)
+table(dat$bail_amount)
+table(dat$bail_amount, useNA='ifany') # almost forgot
+
+## Summary by bail amount Data Table
+dat[ , .N, by = bail_amount]
+dat[ , .N, keyby = bail_amount]
+
+## Summary by race
+dat[ , .N, by=race]
+```
+
+
+## Examples of subsetting with data.table
+
+This is probably the most confusing thing at first
+
+```{r}
+## WRONG WAY:
+dat[ , 3]
+dat[ , 'race']
+
+## RIGHT WAY:
+dat[1:10 , race] 
+dat[1:10 , 3, with = F]
+
+
+## Indexing works differently 
+dat[1]
+
+## DF:
+df = as.data.frame(dat)
+# df[1]
+df[1,]
+```
+
+## Examples of grouping and aggregating with data.table
+
+This is very fast, and very useful for generating any kind of summary statistics.
+
+```{r}
+
+## Grouping is simple
+dat[ , mean(age_at_booking), by=race]
+
+## you can name your grouped results with lists
+dat[i = TRUE, 
+	j = list(mean = mean(age_at_booking),
+			 sd = sd(age_at_booking)), 
+	by = race]
+```
+
+## Examples of grouping and aggregating with data.table
+
+But look at what happens here!
+
+Sometimes things happen that you may not expect. It's good, but possibly a surprise. By including `age_at_booking` without any aggregating function, it automatically expands the data.table result
+
+```{r}
+dat[i = TRUE, 
+	j = list(mean = mean(age_at_booking),
+			 sd = sd(age_at_booking),
+			 age_at_booking), 
+	by = race]
+```
+
+### Complex query example
+
+```{r, tidy=FALSE}
+mysummary = dat[i = !is.na(charges) &
+					!is.na(booking_date) &
+					!is.na(bail_amount),
+				j = list(count = .N,
+						 coverage = diff(range(booking_date)),
+						 bailave = mean(bail_amount),
+						 bailsd = sd(bail_amount),
+						 bailmin = min(bail_amount),
+						 bailmax = max(bail_amount)),
+				by = list(race,gender,
+						  age_at_booking)]
+mysummary
+
+## Uncomment to open summary as csv file, in Excel probably
+# wtf(mysummary)
+```
+
+
 ### Check Categories
 
 Let's use the `NAsummary` from geneorama to dig into the structure of dat:
